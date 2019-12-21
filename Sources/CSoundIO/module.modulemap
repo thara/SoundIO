@@ -1,0 +1,5 @@
+module CSoundIO [system] {
+    header "shim.h"
+    link "soundio"
+    export *
+}
