@@ -58,9 +58,7 @@ func writeCallback(outstream: UnsafeMutablePointer<SoundIoOutStream>?, frameCoun
 }
 
 func main() throws {
-    guard let soundio: UnsafeMutablePointer<SoundIo> = soundio_create() else {
-        fatalError("out of memory")
-    }
+    let soundio = try soundio_create().ensureAllocatedMemory()
 
     try soundio_connect(soundio).ensureSuccess()
 
@@ -71,16 +69,11 @@ func main() throws {
         fatalError("no output device found")
     }
 
-    guard let device: UnsafeMutablePointer<SoundIoDevice> = soundio_get_output_device(soundio, defaultOutDeviceIndex) else {
-        fatalError("out of memory")
-    }
-
+    let device = try soundio_get_output_device(soundio, defaultOutDeviceIndex).ensureAllocatedMemory()
     let deviceName = String(cString: device.pointee.name)
     print("Output device: \(deviceName)")
 
-    guard let outstream: UnsafeMutablePointer<SoundIoOutStream> = soundio_outstream_create(device) else {
-        fatalError("out of memory")
-    }
+    let outstream = try soundio_outstream_create(device).ensureAllocatedMemory()
     outstream.pointee.format = SoundIoFormatFloat32LE;
     outstream.pointee.write_callback = writeCallback;
 
