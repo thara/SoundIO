@@ -1,4 +1,5 @@
 import CSoundIO
+import SoundIO
 
 func soundioError(_ errorCode: Int32) -> String {
     return String(cString: soundio_strerror(errorCode))
@@ -13,14 +14,14 @@ func writeCallback(outstream: UnsafeMutablePointer<SoundIoOutStream>?, frameCoun
     let secondsPerFrame = 1.0 / Float(o.pointee.sample_rate)
     var areas: UnsafeMutablePointer<SoundIoChannelArea>? = nil
     var framesLeft = frameCountMax
-    var err: CInt = 0
 
     while 0 < framesLeft {
         var frameCount = framesLeft
 
-        err = soundio_outstream_begin_write(outstream, &areas, &frameCount)
-        if 0 < err {
-            fatalError(soundioError(err))
+        do {
+            try soundio_outstream_begin_write(outstream, &areas, &frameCount).ensureSuccess()
+        } catch let error {
+            fatalError("\(error)")
         }
 
         if frameCount == 0 {
@@ -46,24 +47,22 @@ func writeCallback(outstream: UnsafeMutablePointer<SoundIoOutStream>?, frameCoun
         }
         secondsOffset = (secondsOffset + secondsPerFrame * Float(frameCount)).truncatingRemainder(dividingBy: 1)
 
-        err = soundio_outstream_end_write(outstream)
-        if 0 < err {
-            fatalError(soundioError(err))
+        do {
+            try soundio_outstream_end_write(outstream).ensureSuccess()
+        } catch let error {
+            fatalError("\(error)")
         }
 
         framesLeft -= frameCount
     }
 }
 
-func main() {
+func main() throws {
     guard let soundio: UnsafeMutablePointer<SoundIo> = soundio_create() else {
         fatalError("out of memory")
     }
 
-    var err: CInt = soundio_connect(soundio)
-    if 0 < err {
-        fatalError("error connecting: \(soundioError(err))")
-    }
+    try soundio_connect(soundio).ensureSuccess()
 
     soundio_flush_events(soundio)
 
@@ -85,19 +84,9 @@ func main() {
     outstream.pointee.format = SoundIoFormatFloat32LE;
     outstream.pointee.write_callback = writeCallback;
 
-    err = soundio_outstream_open(outstream)
-    if 0 < err {
-        fatalError("unable to open device: \(soundioError(err))")
-    }
-
-    if 0 < outstream.pointee.layout_error {
-        fatalError("unable to set channel layout: \(soundioError(outstream.pointee.layout_error))")
-    }
-
-    err = soundio_outstream_start(outstream)
-    if 0 < err {
-        fatalError("unable to start device: \(soundioError(err))")
-    }
+    try soundio_outstream_open(outstream).ensureSuccess()
+    try outstream.pointee.layout_error.ensureSuccess()
+    try soundio_outstream_start(outstream).ensureSuccess()
 
     while true {
         soundio_wait_events(soundio)
@@ -108,4 +97,10 @@ func main() {
     soundio_destroy(soundio)
 }
 
-main()
+do {
+    try main()
+} catch let error as SoundIOError {
+    print("Error: \(error)")
+    exit(EXIT_FAILURE)
+}
+

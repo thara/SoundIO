@@ -6,9 +6,9 @@ import PackageDescription
 let package = Package(
     name: "SoundIO",
     products: [
-        // .library(
-        //     name: "SoundIO",
-        //     targets: ["SoundIO"]),
+        .library(
+            name: "SoundIO",
+            targets: ["SoundIO"]),
         .executable(
             name: "SoundIODemo",
             targets: ["SoundIODemo"]),
@@ -20,11 +20,11 @@ let package = Package(
             // pkgConfig: "libsoundio",
             providers: [.brew(["soundio"])]
         ),
-        // .target(
-        //     name: "SoundIO",
-        //     dependencies: ["CSoundIO"]),
+        .target(
+            name: "SoundIO",
+            dependencies: ["CSoundIO"]),
         .target(
             name: "SoundIODemo",
-            dependencies: ["CSoundIO"]),
+            dependencies: ["SoundIO", "CSoundIO"]),
     ]
 )
