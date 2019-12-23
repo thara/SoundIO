@@ -58,18 +58,12 @@ func writeCallback(outstream: UnsafeMutablePointer<SoundIoOutStream>?, frameCoun
 }
 
 func main() throws {
-    let soundio = try soundio_create().ensureAllocatedMemory()
+    let soundio = try SoundIO()
+    try soundio.connect()
+    soundio.flushEvents()
 
-    try soundio_connect(soundio).ensureSuccess()
-
-    soundio_flush_events(soundio)
-
-    let defaultOutDeviceIndex: CInt = soundio_default_output_device_index(soundio)
-    if defaultOutDeviceIndex < 0 {
-        fatalError("no output device found")
-    }
-
-    let device = try soundio_get_output_device(soundio, defaultOutDeviceIndex).ensureAllocatedMemory()
+    let outputDeviceIndex = try soundio.defaultOutputDeviceIndex()
+    let device = try soundio.getOutputDevice(at: outputDeviceIndex)
     let deviceName = String(cString: device.pointee.name)
     print("Output device: \(deviceName)")
 
@@ -82,12 +76,14 @@ func main() throws {
     try soundio_outstream_start(outstream).ensureSuccess()
 
     while true {
-        soundio_wait_events(soundio)
+        soundio.waitEvents()
+        // try soundio.withInternalPointer {
+        //     soundio_wait_events($0)
+        // }
     }
 
     soundio_outstream_destroy(outstream)
     soundio_device_unref(device)
-    soundio_destroy(soundio)
 }
 
 do {
