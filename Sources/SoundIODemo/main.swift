@@ -66,21 +66,18 @@ func main() throws {
     let device = try soundio.getOutputDevice(at: outputDeviceIndex)
     print("Output device: \(device.name)")
 
-    let outstream = try device.withInternalPointer {
-        return try soundio_outstream_create($0).ensureAllocatedMemory()
+    let outstream = try OutStream(to: device)
+    outstream.format = .float32LE
+    try outstream.withInternalPointer {
+        $0.pointee.write_callback = writeCallback
     }
-    outstream.pointee.format = SoundIoFormatFloat32LE;
-    outstream.pointee.write_callback = writeCallback;
 
-    try soundio_outstream_open(outstream).ensureSuccess()
-    try outstream.pointee.layout_error.ensureSuccess()
-    try soundio_outstream_start(outstream).ensureSuccess()
+    try outstream.open()
+    try outstream.start()
 
     while true {
         soundio.waitEvents()
     }
-
-    soundio_outstream_destroy(outstream)
 }
 
 do {

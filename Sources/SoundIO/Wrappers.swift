@@ -47,7 +47,7 @@ public class SoundIO {
 }
 
 public class Device {
-    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
+    fileprivate let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
 
     deinit {
         soundio_device_unref(internalPointer)
@@ -65,4 +65,68 @@ public class Device {
         _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) throws -> T) throws -> T {
         return try unsafeTask(self.internalPointer)
     }
+}
+
+public class OutStream {
+
+    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
+
+    deinit {
+        soundio_outstream_destroy(internalPointer)
+    }
+
+    init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws {
+        self.internalPointer = internalPointer
+    }
+
+    public init(to device: Device) throws {
+        self.internalPointer = try soundio_outstream_create(device.internalPointer).ensureAllocatedMemory()
+    }
+
+    public var format: Format {
+        get {
+            return Format(rawValue: internalPointer.pointee.format)
+        }
+        set {
+            internalPointer.pointee.format = newValue.rawValue
+        }
+    }
+
+    public func open() throws {
+        try soundio_outstream_open(internalPointer).ensureSuccess()
+        try internalPointer.pointee.layout_error.ensureSuccess()
+    }
+
+    public func start() throws {
+        try soundio_outstream_start(internalPointer).ensureSuccess()
+    }
+
+    public func withInternalPointer<T>(
+        _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws -> T) throws -> T {
+        return try unsafeTask(self.internalPointer)
+    }
+}
+
+public struct Format {
+    fileprivate let rawValue: SoundIoFormat
+
+    public static let invalid = Format(rawValue: CSoundIO.SoundIoFormatInvalid)
+    public static let s8 = Format(rawValue: CSoundIO.SoundIoFormatS8)
+    public static let u8 = Format(rawValue: CSoundIO.SoundIoFormatU8)
+    public static let s16LE = Format(rawValue: CSoundIO.SoundIoFormatS16LE)
+    public static let s16BE = Format(rawValue: CSoundIO.SoundIoFormatS16BE)
+    public static let u16LE = Format(rawValue: CSoundIO.SoundIoFormatU16LE)
+    public static let u16BE = Format(rawValue: CSoundIO.SoundIoFormatU16BE)
+    public static let s24LE = Format(rawValue: CSoundIO.SoundIoFormatS24LE)
+    public static let s24BE = Format(rawValue: CSoundIO.SoundIoFormatS24BE)
+    public static let u24LE = Format(rawValue: CSoundIO.SoundIoFormatU24LE)
+    public static let u24BE = Format(rawValue: CSoundIO.SoundIoFormatU24BE)
+    public static let s32LE = Format(rawValue: CSoundIO.SoundIoFormatS32LE)
+    public static let s32BE = Format(rawValue: CSoundIO.SoundIoFormatS32BE)
+    public static let u32LE = Format(rawValue: CSoundIO.SoundIoFormatU32LE)
+    public static let u32BE = Format(rawValue: CSoundIO.SoundIoFormatU32BE)
+    public static let float32LE = Format(rawValue: CSoundIO.SoundIoFormatFloat32LE)
+    public static let float32BE = Format(rawValue: CSoundIO.SoundIoFormatFloat32BE)
+    public static let float64LE = Format(rawValue: CSoundIO.SoundIoFormatFloat64LE)
+    public static let float64BE = Format(rawValue: CSoundIO.SoundIoFormatFloat64BE)
 }
