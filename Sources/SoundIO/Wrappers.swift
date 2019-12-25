@@ -40,7 +40,8 @@ public class SoundIO {
         return SoundIODevice(internalPointer: device)
     }
 
-    public func withInternalPointer(_ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIo>) throws -> Void) throws {
+    public func withInternalPointer(
+        _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIo>) throws -> Void) throws {
         try unsafeTask(self.internalPointer)
     }
 }
@@ -60,7 +61,8 @@ public class SoundIODevice {
         return String(cString: self.internalPointer.pointee.name)
     }
 
-    public func withInternalPointer<T>(_ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) throws -> T) throws -> T {
+    public func withInternalPointer<T>(
+        _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) throws -> T) throws -> T {
         return try unsafeTask(self.internalPointer)
     }
 }
