@@ -33,15 +33,34 @@ public class SoundIO {
         return DeviceIndex(index)
     }
 
-    //TODO Wrap SoundIODevice
-    public func getOutputDevice(at index: DeviceIndex) throws -> UnsafeMutablePointer<CSoundIO.SoundIoDevice> {
+    public func getOutputDevice(at index: DeviceIndex) throws -> SoundIODevice {
         guard let device = soundio_get_output_device(self.internalPointer, index) else {
             throw SoundIOError(message: "invalid parameter value")
         }
-        return device
+        return SoundIODevice(internalPointer: device)
     }
 
     public func withInternalPointer(_ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIo>) throws -> Void) throws {
         try unsafeTask(self.internalPointer)
+    }
+}
+
+public class SoundIODevice {
+    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
+
+    deinit {
+        soundio_device_unref(internalPointer)
+    }
+
+    init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) {
+        self.internalPointer = internalPointer
+    }
+
+    public var name: String {
+        return String(cString: self.internalPointer.pointee.name)
+    }
+
+    public func withInternalPointer<T>(_ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) throws -> T) throws -> T {
+        return try unsafeTask(self.internalPointer)
     }
 }
