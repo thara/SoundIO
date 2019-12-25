@@ -33,11 +33,11 @@ public class SoundIO {
         return DeviceIndex(index)
     }
 
-    public func getOutputDevice(at index: DeviceIndex) throws -> SoundIODevice {
+    public func getOutputDevice(at index: DeviceIndex) throws -> Device {
         guard let device = soundio_get_output_device(self.internalPointer, index) else {
             throw SoundIOError(message: "invalid parameter value")
         }
-        return SoundIODevice(internalPointer: device)
+        return Device(internalPointer: device)
     }
 
     public func withInternalPointer(
@@ -46,7 +46,7 @@ public class SoundIO {
     }
 }
 
-public class SoundIODevice {
+public class Device {
     private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
 
     deinit {
