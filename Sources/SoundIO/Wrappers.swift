@@ -69,13 +69,27 @@ public class Device {
 
 public class OutStream {
 
-    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
+    public typealias WriteCallback = (_ outstream: OutStream, _ frameCountMin: Int32, _ frameCountMax: Int32) -> Void
 
-    deinit {
-        soundio_outstream_destroy(internalPointer)
+    class Callbacks {
+        var onWrite: WriteCallback?
     }
 
-    init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws {
+    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
+    private var callbacks = Callbacks()
+
+    // The flag is set by the callback function to prevent the internal pointer destroyed after the callback
+    fileprivate var temporary: Bool = false
+
+    deinit {
+        if temporary {
+            temporary = false
+        } else {
+            soundio_outstream_destroy(internalPointer)
+        }
+    }
+
+    init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) {
         self.internalPointer = internalPointer
     }
 
@@ -92,6 +106,21 @@ public class OutStream {
         }
     }
 
+    public func writeCallback(_ callback: @escaping WriteCallback) {
+        self.callbacks.onWrite = callback
+
+        self.internalPointer.pointee.userdata = Unmanaged<OutStream.Callbacks>.passRetained(self.callbacks).toOpaque()
+        self.internalPointer.pointee.write_callback = {(outstream, frameCountMin, frameCountMax) in
+            guard let pointer = outstream else { return }
+
+            let out = OutStream(internalPointer: pointer)
+            out.temporary = true
+
+            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
+            callbacks.onWrite?(out, frameCountMin, frameCountMax)
+        }
+    }
+
     public func open() throws {
         try soundio_outstream_open(internalPointer).ensureSuccess()
         try internalPointer.pointee.layout_error.ensureSuccess()
@@ -104,6 +133,26 @@ public class OutStream {
     public func withInternalPointer<T>(
         _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws -> T) throws -> T {
         return try unsafeTask(self.internalPointer)
+    }
+
+    public var layout: ChannelLayout {
+        return ChannelLayout(owner: self.internalPointer)
+    }
+
+    public var sampleRate: UInt {
+        return UInt(self.internalPointer.pointee.sample_rate)
+    }
+}
+
+public struct ChannelLayout {
+    fileprivate let owner: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
+
+    public var name: String {
+        return String(cString: owner.pointee.layout.name)
+    }
+
+    public var channelCount: UInt {
+        return UInt(owner.pointee.layout.channel_count)
     }
 }
 
