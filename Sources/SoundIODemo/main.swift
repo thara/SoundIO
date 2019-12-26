@@ -13,7 +13,7 @@ func main() throws {
     print("Output device: \(device.name)")
 
     let outstream = try OutStream(to: device)
-    outstream.format = .float32LE
+    outstream.format = .float32bitLittleEndian
     outstream.writeCallback { (outstream, frameCountMin, frameCountMax) in
         let secondsPerFrame = 1.0 / Float(outstream.sampleRate)
         var writer = OutStreamWriter(frameCount: frameCountMax)
