@@ -142,6 +142,94 @@ public class OutStream {
     public var sampleRate: UInt {
         return UInt(self.internalPointer.pointee.sample_rate)
     }
+
+    func beginWrite(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
+        try soundio_outstream_begin_write(internalPointer, &areas, &frameCount).ensureSuccess()
+    }
+
+    func endWrite() throws {
+        try soundio_outstream_end_write(internalPointer).ensureSuccess()
+    }
+}
+
+public struct OutStreamWriter {
+    private var areas: UnsafeMutablePointer<SoundIoChannelArea>?
+    private var frameCount: Int32
+
+    public init(frameCount: Int32) {
+        self.frameCount = frameCount
+    }
+
+    public mutating func write(to outstream: OutStream, _ task: (ChannelAreaList, Int32) throws -> Void) throws {
+        var framesLeft = frameCount
+
+        while 0 < framesLeft {
+            var actualFrameCount = framesLeft
+            try outstream.beginWrite(areas: &self.areas, frameCount: &actualFrameCount)
+
+            if actualFrameCount == 0 {
+                break
+            }
+
+            let areas = ChannelAreaList(areas: self.areas, channelCount: Int(outstream.layout.channelCount))
+            try task(areas, actualFrameCount)
+            try outstream.endWrite()
+
+            framesLeft -= frameCount
+        }
+    }
+}
+
+public struct ChannelAreaList: Collection {
+    public typealias Index = Int
+    public typealias Element = ChannelArea
+
+    private var areas: UnsafeMutablePointer<SoundIoChannelArea>?
+    private var channelCount: Int
+
+    public init(areas: UnsafeMutablePointer<SoundIoChannelArea>?, channelCount: Int) {
+        self.areas = areas
+        self.channelCount = channelCount
+    }
+
+    public var startIndex: Index {
+        return 0
+    }
+
+    public var endIndex: Index {
+        return channelCount - 1
+    }
+
+    public subscript(index: Index) -> Iterator.Element {
+        return ChannelArea(areas: areas, index: index)
+    }
+
+    public func index(after i: Index) -> Index {
+        return i + 1
+    }
+}
+
+public struct ChannelArea {
+    fileprivate var areas: UnsafeMutablePointer<SoundIoChannelArea>?
+    fileprivate var index: Int
+
+    public func write<T: BinaryFloatingPoint>(_ value: T, stepBy frame: Int32) {
+        writeAny(value: value, stepBy: frame)
+    }
+
+    public func write<T: BinaryInteger>(_ value: T, stepBy frame: Int32) {
+        writeAny(value: value, stepBy: frame)
+    }
+
+    private func writeAny<T>(value: T, stepBy frame: Int32) {
+        guard let area = areas?[index] else {
+            return
+        }
+        let p: UnsafeMutablePointer<Int8> = area.ptr + Int(area.step * frame)
+        p.withMemoryRebound(to: T.self, capacity: 1) {
+            $0.pointee = value
+        }
+    }
 }
 
 public struct ChannelLayout {
