@@ -154,7 +154,7 @@ public class OutStream {
 
 public struct OutStreamWriter {
     private var areas: UnsafeMutablePointer<SoundIoChannelArea>?
-    private var frameCount: Int32
+    public let frameCount: Int32
 
     public init(frameCount: Int32) {
         self.frameCount = frameCount
@@ -178,6 +178,11 @@ public struct OutStreamWriter {
             framesLeft -= frameCount
         }
     }
+
+    public func withInternalPointer(
+        _ unsafeTask: (UnsafeMutablePointer<SoundIoChannelArea>?) throws -> Void) throws {
+        try unsafeTask(areas)
+    }
 }
 
 public struct ChannelAreaList: Collection {
@@ -185,7 +190,7 @@ public struct ChannelAreaList: Collection {
     public typealias Element = ChannelArea
 
     private var areas: UnsafeMutablePointer<SoundIoChannelArea>?
-    private var channelCount: Int
+    public let channelCount: Int
 
     public init(areas: UnsafeMutablePointer<SoundIoChannelArea>?, channelCount: Int) {
         self.areas = areas
@@ -206,6 +211,11 @@ public struct ChannelAreaList: Collection {
 
     public func index(after i: Index) -> Index {
         return i + 1
+    }
+
+    public func withInternalPointer(
+        _ unsafeTask: (UnsafeMutablePointer<SoundIoChannelArea>?) throws -> Void) throws {
+        try unsafeTask(areas)
     }
 }
 
