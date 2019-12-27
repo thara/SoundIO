@@ -15,26 +15,22 @@ func main() throws {
     let outstream = try OutStream(to: device)
     outstream.format = .float32bitLittleEndian
     outstream.writeCallback { (outstream, frameCountMin, frameCountMax) in
+        let layout = outstream.layout
         let secondsPerFrame = 1.0 / Float(outstream.sampleRate)
-        var writer = OutStreamWriter(frameCount: frameCountMax)
-        do {
-            try writer.write(to: outstream) { (areas, frameCount) in
-                let pitch: Float = 440.0
-                let radiansPerSecond = pitch * 2.0 * .pi
 
-                for frame in 0..<frameCount {
-                    let sample = sin((secondsOffset + Float(frame) * secondsPerFrame) * radiansPerSecond)
-                    if frame == 100 {
-                        print("\(secondsOffset) \(frame) \(secondsPerFrame) \(radiansPerSecond) \(sample)")
-                    }
-                    for area in areas {
-                        area.write(sample, stepBy: frame)
-                    }
+        try! outstream.write(frameCount: frameCountMax) { (areas, frameCount) in
+            let pitch: Float = 440.0
+            let radiansPerSecond = pitch * 2.0 * .pi
+            for frame in 0..<frameCount {
+                let sample = sin((secondsOffset + Float(frame) * secondsPerFrame) * radiansPerSecond)
+                if frame == 100 {
+                    print("\(secondsOffset) \(frame) \(secondsPerFrame) \(radiansPerSecond) \(sample)")
                 }
-                secondsOffset = (secondsOffset + secondsPerFrame * Float(frameCount)).truncatingRemainder(dividingBy: 1)
+                for area in areas.iterate(over: layout.channelCount) {
+                    area.write(sample, stepBy: frame)
+                }
             }
-        } catch let error {
-            fatalError("\(error)")
+            secondsOffset = (secondsOffset + secondsPerFrame * Float(frameCount)).truncatingRemainder(dividingBy: 1)
         }
     }
 
