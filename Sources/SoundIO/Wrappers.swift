@@ -191,8 +191,8 @@ extension ChannelArea {
     }
 
     private func writeAny<T>(value: T, stepBy frame: Int32) {
-        let p: UnsafeMutablePointer<Int8> = self.ptr + Int(self.step * frame)
-        p.withMemoryRebound(to: T.self, capacity: 1) {
+        let buffer = self.ptr + Int(self.step * frame)
+        buffer.withMemoryRebound(to: T.self, capacity: 1) {
             $0.pointee = value
         }
     }
