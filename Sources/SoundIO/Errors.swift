@@ -18,8 +18,7 @@ extension SoundIOError: CustomStringConvertible {
     }
 }
 
-//TODO Make internal
-public extension CInt {
+extension CInt {
     @inline(__always)
     func ensureSuccess() throws {
         if 0 < self {
@@ -28,8 +27,7 @@ public extension CInt {
     }
 }
 
-//TODO Make internal
-public extension Optional {
+extension Optional {
     @inline(__always)
     func ensureAllocatedMemory() throws -> Wrapped {
         guard let value = self else {
