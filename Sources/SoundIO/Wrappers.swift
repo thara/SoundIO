@@ -17,6 +17,10 @@ public class SoundIO {
         try soundio_connect(self.internalPointer).ensureSuccess()
     }
 
+    public func connect(to backend: Backend) throws {
+        try soundio_connect_backend(self.internalPointer, backend.rawValue).ensureSuccess()
+    }
+
     public func flushEvents() {
         soundio_flush_events(self.internalPointer)
     }
@@ -25,12 +29,43 @@ public class SoundIO {
         soundio_wait_events(self.internalPointer)
     }
 
+    public func inputDeviceCount() throws -> Int32 {
+        let result = soundio_input_device_count(self.internalPointer)
+        if result == -1 {
+            throw SoundIOError(message: "flushEvents must be called before calling inputDeviceCount")
+        }
+        return result
+    }
+
+    public func outputDeviceCount() throws -> Int32 {
+        let result = soundio_output_device_count(self.internalPointer)
+        if result == -1 {
+            throw SoundIOError(message: "flushEvents must be called before calling outputDeviceCount")
+        }
+        return result
+    }
+
+    public func defaultInputDeviceIndex() throws -> DeviceIndex {
+        let index = soundio_default_input_device_index(self.internalPointer)
+        guard 0 <= index else {
+            throw SoundIOError(message: "No input device found")
+        }
+        return DeviceIndex(index)
+    }
+
     public func defaultOutputDeviceIndex() throws -> DeviceIndex {
         let index = soundio_default_output_device_index(self.internalPointer)
         guard 0 <= index else {
             throw SoundIOError(message: "No output device found")
         }
         return DeviceIndex(index)
+    }
+
+    public func getInputDevice(at index: DeviceIndex) throws -> Device {
+        guard let device = soundio_get_input_device(self.internalPointer, index) else {
+            throw SoundIOError(message: "invalid parameter value")
+        }
+        return Device(internalPointer: device)
     }
 
     public func getOutputDevice(at index: DeviceIndex) throws -> Device {
@@ -46,6 +81,20 @@ public class SoundIO {
     }
 }
 
+public struct Backend: Equatable {
+    fileprivate let rawValue: SoundIoBackend
+
+    public static let none = Backend(rawValue: CSoundIO.SoundIoBackendNone)
+
+    public static let jack = Backend(rawValue: CSoundIO.SoundIoBackendJack)
+    public static let pulseAudio = Backend(rawValue: CSoundIO.SoundIoBackendPulseAudio)
+    public static let alsa = Backend(rawValue: CSoundIO.SoundIoBackendAlsa)
+    public static let coreAudio = Backend(rawValue: CSoundIO.SoundIoBackendCoreAudio)
+    public static let wasapi = Backend(rawValue: CSoundIO.SoundIoBackendWasapi)
+    public static let dummy = Backend(rawValue: CSoundIO.SoundIoBackendDummy)
+}
+
+
 public class Device {
     fileprivate let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
 
@@ -59,6 +108,10 @@ public class Device {
 
     public var name: String {
         return String(cString: self.internalPointer.pointee.name)
+    }
+
+    public var raw: Bool {
+        return self.internalPointer.pointee.is_raw
     }
 
     public func withInternalPointer<T>(
@@ -209,6 +262,7 @@ public struct ChannelLayout {
         return UInt(owner.pointee.layout.channel_count)
     }
 }
+
 
 public struct Format {
     fileprivate let rawValue: SoundIoFormat

@@ -10,8 +10,11 @@ let package = Package(
             name: "SoundIO",
             targets: ["SoundIO"]),
         .executable(
-            name: "SoundIODemo",
-            targets: ["SoundIODemo"]),
+            name: "soundiodemo-sine",
+            targets: ["SoundIODemo-Sine"]),
+        .executable(
+            name: "soundiodemo-listdevices",
+            targets: ["SoundIODemo-ListDevices"]),
     ],
     targets: [
         .systemLibrary(
@@ -24,7 +27,12 @@ let package = Package(
             name: "SoundIO",
             dependencies: ["CSoundIO"]),
         .target(
-            name: "SoundIODemo",
-            dependencies: ["SoundIO", "CSoundIO"]),
+            name: "SoundIODemo-Sine",
+            dependencies: ["SoundIO", "CSoundIO"],
+            path: "Sources/SoundIODemo/sine/"),
+        .target(
+            name: "SoundIODemo-ListDevices",
+            dependencies: ["SoundIO", "CSoundIO"],
+            path: "Sources/SoundIODemo/list_devices/"),
     ]
 )
