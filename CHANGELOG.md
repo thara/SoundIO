@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.0] - 2020-01-25
+### Added
   - Support `soundio_connect_backend`
   - Support `soundio_input_device_count`
   - Support `soundio_output_device_count`
@@ -32,4 +35,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sine demo
 
 [Unreleased]: https://github.com/thara/SoundIO/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/thara/SoundIO/releases/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/thara/SoundIO/releases/tag/v0.1.0
