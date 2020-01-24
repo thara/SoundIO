@@ -22,16 +22,16 @@ extension SoundIO {
         let defaultOutput = try defaultOutputDeviceIndex()
         let defaultInput = try defaultInputDeviceIndex()
 
-        print("--------Input Devices--------")
+        print("--------Input Devices--------\n")
         for i in 0..<inputCount {
             let device = try getInputDevice(at: i)
-            device.print(default: i == defaultInput)
+            try device.printInfo(default: i == defaultInput)
         }
 
-        print("\n--------Output Devices--------")
+        print("\n--------Output Devices--------\n")
         for i in 0..<outputCount {
             let device = try getOutputDevice(at: i)
-            device.print(default: i == defaultOutput)
+            try device.printInfo(default: i == defaultOutput)
         }
 
         print("\(inputCount + outputCount) devicess found")
@@ -39,10 +39,45 @@ extension SoundIO {
 }
 
 extension Device {
-    func print(default isDefault: Bool) {
-        Swift.print("\(name)\(isDefault ? " (default)" : "")\(raw ? " (raw)" : "")")
+    func printInfo(default isDefault: Bool) throws {
+        print("\(name)\(isDefault ? " (default)" : "")\(raw ? " (raw)" : "")")
         if shortOutput {
             return
+        }
+        print("  id: \(id)")
+
+        if let error = probeError() {
+            print("probe error: \(error.message)")
+            return
+        }
+
+        print("  channel layouts:")
+        for i in 0..<layoutCount {
+            print("    ", terminator: "")
+            layouts[i].printName()
+            print("")
+        }
+
+        if 0 < currentLayout.channelCount {
+            print("  current layout: ", terminator: "")
+            currentLayout.printName()
+            print("")
+        }
+
+        print("  sample rates:")
+        for i in 0..<sampleRateCount {
+            let range = sampleRates[i]
+            print("    \(range.max) - (range.min)")
+        }
+    }
+}
+
+extension ChannelLayout {
+    func printName() {
+        if let name = name {
+            print(name, terminator: "")
+        } else {
+            print(channels.map { getChannelName(for: $0) }.joined(separator: ", "), terminator: "")
         }
     }
 }
@@ -55,7 +90,9 @@ func main() throws {
 
     var watch = false
 
-    for (var i, arg) in argv.enumerated().dropFirst(1) {
+    var i = 1
+    while i < argv.count {
+        let arg = argv[i]
         switch arg {
         case "--watch":
             watch = true
@@ -63,7 +100,7 @@ func main() throws {
             shortOutput = true
         case "--backend":
             i += 1
-            if argv.count - 1 <= i {
+            if argv.count - 1 < i {
                 usage(path: argv[0])
             } else {
                 switch argv[i] {
@@ -85,8 +122,11 @@ func main() throws {
                 }
             }
         default:
+            print("default", arg)
             usage(path: argv[0])
         }
+
+        i += 1
     }
 
     let soundio = try SoundIO()
@@ -98,7 +138,13 @@ func main() throws {
     }
 
     if watch {
-
+        soundio.onDevicesChange {
+            print("devices changed")
+            try! $0.listDevices()
+        }
+        while true {
+            soundio.waitEvents()
+        }
     } else {
         soundio.flushEvents()
         try soundio.listDevices()

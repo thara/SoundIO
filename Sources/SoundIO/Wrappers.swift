@@ -1,16 +1,34 @@
 import CSoundIO
 
 public typealias DeviceIndex = Int32
+public typealias ChannelId = CSoundIO.SoundIoChannelId
 
 public class SoundIO {
     private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIo>
 
+    fileprivate var temporary: Bool = false
+    private var callbacks = Callbacks()
+
+    public typealias DevicesChangeCallback = (_ soundio: SoundIO) -> Void
+
+    class Callbacks {
+        var onDevicesChange: DevicesChangeCallback?
+    }
+
     deinit {
-        soundio_destroy(internalPointer)
+        if temporary {
+            temporary = false
+        } else {
+            soundio_destroy(internalPointer)
+        }
     }
 
     public init() throws {
         self.internalPointer = try soundio_create().ensureAllocatedMemory()
+    }
+
+    init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIo>) {
+        self.internalPointer = internalPointer
     }
 
     public func connect() throws {
@@ -75,6 +93,21 @@ public class SoundIO {
         return Device(internalPointer: device)
     }
 
+    public func onDevicesChange(_ callback: @escaping DevicesChangeCallback) {
+        self.callbacks.onDevicesChange = callback
+
+        self.internalPointer.pointee.userdata = Unmanaged<Callbacks>.passRetained(self.callbacks).toOpaque()
+        self.internalPointer.pointee.on_devices_change = {soundio in
+            guard let pointer = soundio else { return }
+
+            let out = SoundIO(internalPointer: pointer)
+            out.temporary = true
+
+            let callbacks = Unmanaged<Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
+            callbacks.onDevicesChange?(out)
+        }
+    }
+
     public func withInternalPointer(
         _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIo>) throws -> Void) throws {
         try unsafeTask(self.internalPointer)
@@ -106,6 +139,10 @@ public class Device {
         self.internalPointer = internalPointer
     }
 
+    public var id: String {
+        return String(cString: self.internalPointer.pointee.id)
+    }
+
     public var name: String {
         return String(cString: self.internalPointer.pointee.name)
     }
@@ -114,11 +151,53 @@ public class Device {
         return self.internalPointer.pointee.is_raw
     }
 
+    public var layoutCount: Int {
+        return Int(self.internalPointer.pointee.layout_count)
+    }
+
+    public var currentLayout: ChannelLayout {
+        let pointer = withUnsafeMutablePointer(to: &self.internalPointer.pointee.current_layout) {
+            UnsafeMutablePointer($0)
+        }
+        return ChannelLayout(internalPointer: pointer)
+    }
+
+    public var layouts: [ChannelLayout] {
+        let buffer = UnsafeBufferPointer(start: internalPointer.pointee.layouts, count: layoutCount)
+
+        var layouts = [ChannelLayout?](repeating: nil, count: layoutCount)
+        for (i, var value) in buffer.enumerated() {
+            let p = UnsafeMutablePointer<SoundIoChannelLayout>.allocate(capacity: MemoryLayout<SoundIoChannelLayout>.alignment)
+            p.initialize(from: &value, count: 1)
+            layouts[i] = ChannelLayout(internalPointer: p)
+        }
+        return layouts.compactMap { $0 }
+    }
+
+    public lazy var sampleRateCount: Int = {
+        return Int(internalPointer.pointee.sample_rate_count)
+    }()
+
+    public lazy var sampleRates: [SampleRateRange] = {
+        let buffer = UnsafeBufferPointer(start: internalPointer.pointee.sample_rates, count: sampleRateCount)
+        return Array(buffer.map { (max: $0.max, min: $0.min) })
+    }()
+
+    public func probeError() -> SoundIOError? {
+        let error = self.internalPointer.pointee.probe_error
+        if 0 < error {
+            return SoundIOError(errorCode: error)
+        }
+        return nil
+    }
+
     public func withInternalPointer<T>(
         _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>) throws -> T) throws -> T {
         return try unsafeTask(self.internalPointer)
     }
 }
+
+public typealias SampleRateRange = (max: Int32, min: Int32)
 
 public class OutStream {
 
@@ -189,7 +268,10 @@ public class OutStream {
     }
 
     public var layout: ChannelLayout {
-        return ChannelLayout(owner: self.internalPointer)
+        let pointer = withUnsafeMutablePointer(to: &self.internalPointer.pointee.layout) {
+            UnsafeMutablePointer($0)
+        }
+        return ChannelLayout(internalPointer: pointer)
     }
 
     public var sampleRate: UInt {
@@ -252,17 +334,32 @@ extension ChannelArea {
 }
 
 public struct ChannelLayout {
-    fileprivate let owner: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
+    fileprivate let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoChannelLayout>
 
-    public var name: String {
-        return String(cString: owner.pointee.layout.name)
+    public var name: String? {
+        guard let pointer = internalPointer.pointee.name else {
+            print("NULL")
+            return nil
+        }
+        return String(cString: pointer)
     }
 
     public var channelCount: UInt {
-        return UInt(owner.pointee.layout.channel_count)
+        return UInt(internalPointer.pointee.channel_count)
+    }
+
+    public var channels: [ChannelId] {
+        return withUnsafeBytes(of: &internalPointer.pointee.channels) { raw in
+            let ptr = raw.baseAddress!.assumingMemoryBound(to: SoundIoChannelId.self)
+            let buffer = UnsafeBufferPointer(start: ptr, count: Int(SOUNDIO_MAX_CHANNELS))
+            return Array(buffer)
+        }
     }
 }
 
+public func getChannelName(for channelId: ChannelId) -> String {
+    return String(cString: soundio_get_channel_name(channelId))
+}
 
 public struct Format {
     fileprivate let rawValue: SoundIoFormat
