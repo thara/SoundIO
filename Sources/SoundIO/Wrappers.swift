@@ -127,7 +127,6 @@ public struct Backend: Equatable {
     public static let dummy = Backend(rawValue: CSoundIO.SoundIoBackendDummy)
 }
 
-
 public class Device {
     fileprivate let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoDevice>
 
@@ -174,14 +173,43 @@ public class Device {
         return layouts.compactMap { $0 }
     }
 
-    public lazy var sampleRateCount: Int = {
+    public var sampleRateCount: Int {
         return Int(internalPointer.pointee.sample_rate_count)
-    }()
+    }
 
     public lazy var sampleRates: [SampleRateRange] = {
         let buffer = UnsafeBufferPointer(start: internalPointer.pointee.sample_rates, count: sampleRateCount)
         return Array(buffer.map { (max: $0.max, min: $0.min) })
     }()
+
+    public var sampleRateCurrent: Int {
+        return Int(internalPointer.pointee.sample_rate_current)
+    }
+
+    public var formatCount: Int {
+        return Int(internalPointer.pointee.format_count)
+    }
+
+    public lazy var formats: [Format] = {
+        let buffer = UnsafeBufferPointer(start: internalPointer.pointee.formats, count: formatCount)
+        return Array(buffer.map { Format(rawValue: $0) })
+    }()
+
+    public var currentFormat: Format {
+        return Format(rawValue: internalPointer.pointee.current_format)
+    }
+
+    public var softwareLatencyMin: Double {
+        return internalPointer.pointee.software_latency_min
+    }
+
+    public var softwareLatencyMax: Double {
+        return internalPointer.pointee.software_latency_max
+    }
+
+    public var softwareLatencyCurrent: Double {
+        return internalPointer.pointee.software_latency_current
+    }
 
     public func probeError() -> SoundIOError? {
         let error = self.internalPointer.pointee.probe_error
@@ -361,7 +389,7 @@ public func getChannelName(for channelId: ChannelId) -> String {
     return String(cString: soundio_get_channel_name(channelId))
 }
 
-public struct Format {
+public struct Format: Equatable {
     fileprivate let rawValue: SoundIoFormat
 
     public static let invalid = Format(rawValue: CSoundIO.SoundIoFormatInvalid)
@@ -383,4 +411,8 @@ public struct Format {
     public static let float32bitBigEndian = Format(rawValue: CSoundIO.SoundIoFormatFloat32BE)
     public static let float64bitLittleEndian = Format(rawValue: CSoundIO.SoundIoFormatFloat64LE)
     public static let float64bitBigEndian = Format(rawValue: CSoundIO.SoundIoFormatFloat64BE)
+
+    public func toString() -> String {
+        return String(cString: soundio_format_string(rawValue))
+    }
 }

@@ -13,30 +13,17 @@ func usage(path: String) {
     exit(EXIT_FAILURE)
 }
 
-extension SoundIO {
-
-    func listDevices() throws {
-        let outputCount = try outputDeviceCount()
-        let inputCount = try inputDeviceCount()
-
-        let defaultOutput = try defaultOutputDeviceIndex()
-        let defaultInput = try defaultInputDeviceIndex()
-
-        print("--------Input Devices--------\n")
-        for i in 0..<inputCount {
-            let device = try getInputDevice(at: i)
-            try device.printInfo(default: i == defaultInput)
+extension ChannelLayout {
+    func printName() {
+        if let name = name {
+            print(name, terminator: "")
+        } else {
+            print(channels.map { getChannelName(for: $0) }.joined(separator: ", "), terminator: "")
         }
-
-        print("\n--------Output Devices--------\n")
-        for i in 0..<outputCount {
-            let device = try getOutputDevice(at: i)
-            try device.printInfo(default: i == defaultOutput)
-        }
-
-        print("\(inputCount + outputCount) devicess found")
     }
 }
+
+var shortOutput = false
 
 extension Device {
     func printInfo(default isDefault: Bool) throws {
@@ -67,28 +54,58 @@ extension Device {
         print("  sample rates:")
         for i in 0..<sampleRateCount {
             let range = sampleRates[i]
-            print("    \(range.max) - (range.min)")
+            print("    \(range.max) - \(range.min)")
+        }
+
+        if 0 < sampleRateCurrent {
+            print("  current sample rate: \(sampleRateCurrent)")
+        }
+        print("  formats: \(formats.map { $0.toString() }.joined(separator: ", "))")
+
+        if currentFormat != .invalid {
+            print("  current format: \(currentFormat.toString())")
+        }
+
+        print("  min software latency: \(String(format: "%0.8f", softwareLatencyMin)) sec")
+        print("  max software latency: \(String(format: "%0.8f", softwareLatencyMax)) sec")
+
+        if softwareLatencyCurrent != 0.0 {
+            print("  current software latency: \(String(format: "%0.8f", softwareLatencyCurrent)) sec\n")
         }
     }
 }
 
-extension ChannelLayout {
-    func printName() {
-        if let name = name {
-            print(name, terminator: "")
-        } else {
-            print(channels.map { getChannelName(for: $0) }.joined(separator: ", "), terminator: "")
+
+
+extension SoundIO {
+
+    func listDevices() throws {
+        let outputCount = try outputDeviceCount()
+        let inputCount = try inputDeviceCount()
+
+        let defaultOutput = try defaultOutputDeviceIndex()
+        let defaultInput = try defaultInputDeviceIndex()
+
+        print("--------Input Devices--------\n")
+        for i in 0..<inputCount {
+            let device = try getInputDevice(at: i)
+            try device.printInfo(default: i == defaultInput)
         }
+
+        print("\n--------Output Devices--------\n")
+        for i in 0..<outputCount {
+            let device = try getOutputDevice(at: i)
+            try device.printInfo(default: i == defaultOutput)
+        }
+
+        print("\n\(inputCount + outputCount) devices found")
     }
 }
-
-var shortOutput = false
-var backend: Backend = .none
 
 func main() throws {
     let argv = ProcessInfo.processInfo.arguments
-
     var watch = false
+    var backend: Backend = .none
 
     var i = 1
     while i < argv.count {
