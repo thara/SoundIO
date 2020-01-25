@@ -164,13 +164,14 @@ public class Device {
     public var layouts: [ChannelLayout] {
         let buffer = UnsafeBufferPointer(start: internalPointer.pointee.layouts, count: layoutCount)
 
-        var layouts = [ChannelLayout?](repeating: nil, count: layoutCount)
-        for (i, var value) in buffer.enumerated() {
-            let p = UnsafeMutablePointer<SoundIoChannelLayout>.allocate(capacity: MemoryLayout<SoundIoChannelLayout>.alignment)
-            p.initialize(from: &value, count: 1)
-            layouts[i] = ChannelLayout(internalPointer: p)
+        return [ChannelLayout](unsafeUninitializedCapacity: layoutCount) { array, count in
+            for (i, var value) in buffer.enumerated() {
+                let p = UnsafeMutablePointer<SoundIoChannelLayout>.allocate(capacity: MemoryLayout<SoundIoChannelLayout>.alignment)
+                p.initialize(from: &value, count: 1)
+                array[i] = ChannelLayout(internalPointer: p)
+            }
+            count = layoutCount
         }
-        return layouts.compactMap { $0 }
     }
 
     public var sampleRateCount: Int {
