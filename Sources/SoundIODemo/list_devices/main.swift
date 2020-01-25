@@ -75,8 +75,6 @@ extension Device {
     }
 }
 
-
-
 extension SoundIO {
 
     func listDevices() throws {
@@ -174,4 +172,3 @@ do {
     print("Error: \(error)")
     exit(EXIT_FAILURE)
 }
-

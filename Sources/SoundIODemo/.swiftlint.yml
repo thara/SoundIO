@@ -1,0 +1,4 @@
+disabled_rules:
+  - cyclomatic_complexity
+  - force_try
+  - function_body_length

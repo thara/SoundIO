@@ -14,7 +14,7 @@ func main() throws {
 
     let outstream = try OutStream(to: device)
     outstream.format = .float32bitLittleEndian
-    outstream.writeCallback { (outstream, frameCountMin, frameCountMax) in
+    outstream.writeCallback { (outstream, _, frameCountMax) in
         let layout = outstream.layout
         let secondsPerFrame = 1.0 / Float(outstream.sampleRate)
 
@@ -48,4 +48,3 @@ do {
     print("Error: \(error)")
     exit(EXIT_FAILURE)
 }
-
