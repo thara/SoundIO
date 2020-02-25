@@ -1,4 +1,4 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -25,7 +25,10 @@ let package = Package(
         ),
         .target(
             name: "SoundIO",
-            dependencies: ["CSoundIO"]),
+            dependencies: ["CSoundIO"],
+            linkerSettings: [
+                .unsafeFlags(["-L/usr/local/lib"], .when(platforms: [.macOS]))
+            ]),
         .target(
             name: "SoundIODemo-Sine",
             dependencies: ["SoundIO", "CSoundIO"],
