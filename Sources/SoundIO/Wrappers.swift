@@ -3,7 +3,7 @@ import CSoundIO
 public typealias DeviceIndex = Int32
 
 public class SoundIO {
-    private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIo>
+    let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIo>
 
     private var temporary: Bool = false
     private var callbacks = Callbacks()
@@ -105,6 +105,13 @@ public class SoundIO {
             let callbacks = Unmanaged<Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
             callbacks.onDevicesChange?(out)
         }
+    }
+
+    public func createRingBuffer(capacity: Int32) throws -> RingBuffer {
+        guard let p = soundio_ring_buffer_create(self.internalPointer, capacity) else {
+            throw SoundIOError(message: "memory could not be allocated")
+        }
+        return RingBuffer(internalPointer: p)
     }
 
     public func withInternalPointer(
