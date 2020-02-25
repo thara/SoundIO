@@ -4,7 +4,7 @@ public typealias ChannelId = CSoundIO.SoundIoChannelId
 
 public typealias SampleRateRange = (max: Int32, min: Int32)
 
-public typealias ChannelAreaList = UnsafeMutablePointer<SoundIoChannelArea>?
+public typealias ChannelAreaList = UnsafeMutablePointer<SoundIoChannelArea>
 public typealias ChannelArea = SoundIoChannelArea
 
 public struct ChannelLayoutList {
@@ -26,11 +26,11 @@ extension ChannelAreaList {
 }
 
 extension ChannelArea {
-    public func write<T: BinaryFloatingPoint>(_ value: T, stepBy frame: Int32) {
+    public func write<T: BinaryFloatingPoint>(_ value: T, stepBy frame: Int32 = 1) {
         writeAny(value: value, stepBy: frame)
     }
 
-    public func write<T: BinaryInteger>(_ value: T, stepBy frame: Int32) {
+    public func write<T: BinaryInteger>(_ value: T, stepBy frame: Int32 = 1) {
         writeAny(value: value, stepBy: frame)
     }
 
@@ -63,6 +63,14 @@ public struct ChannelLayout {
             let buffer = UnsafeBufferPointer(start: ptr, count: Int(SOUNDIO_MAX_CHANNELS))
             return Array(buffer)
         }
+    }
+
+    public static func findBestMatching(preferred: ChannelLayoutList, available: ChannelLayoutList) -> ChannelLayout? {
+        let matches = soundio_best_matching_channel_layout(preferred.internalPointer.baseAddress, preferred.count, available.internalPointer.baseAddress, available.count)
+        if let p = matches {
+            return ChannelLayout(internalPointer: UnsafeMutablePointer(mutating: p))
+        }
+        return nil
     }
 }
 

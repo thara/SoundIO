@@ -3,9 +3,11 @@ import CSoundIO
 public class OutStream {
 
     public typealias WriteCallback = (_ outstream: OutStream, _ frameCountMin: Int32, _ frameCountMax: Int32) -> Void
+    public typealias UnderflowCallback = (_ outstream: OutStream) -> Void
 
     class Callbacks {
         var onWrite: WriteCallback?
+        var onUnderflow: UnderflowCallback?
     }
 
     private let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>
@@ -28,6 +30,7 @@ public class OutStream {
 
     public init(to device: Device) throws {
         self.internalPointer = try soundio_outstream_create(device.internalPointer).ensureAllocatedMemory()
+        self.internalPointer.pointee.userdata = Unmanaged<OutStream.Callbacks>.passRetained(self.callbacks).toOpaque()
     }
 
     public var format: Format {
@@ -42,7 +45,6 @@ public class OutStream {
     public func writeCallback(_ callback: @escaping WriteCallback) {
         self.callbacks.onWrite = callback
 
-        self.internalPointer.pointee.userdata = Unmanaged<OutStream.Callbacks>.passRetained(self.callbacks).toOpaque()
         self.internalPointer.pointee.write_callback = {(outstream, frameCountMin, frameCountMax) in
             guard let pointer = outstream else { return }
 
@@ -51,6 +53,20 @@ public class OutStream {
 
             let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
             callbacks.onWrite?(out, frameCountMin, frameCountMax)
+        }
+    }
+
+    public func underflowCallback(_ callback: @escaping UnderflowCallback) {
+        self.callbacks.onUnderflow = callback
+
+        self.internalPointer.pointee.underflow_callback = {(outstream) in
+            guard let pointer = outstream else { return }
+
+            let out = OutStream(internalPointer: pointer)
+            out.temporary = true
+
+            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
+            callbacks.onUnderflow?(out)
         }
     }
 
@@ -68,15 +84,35 @@ public class OutStream {
         return try unsafeTask(self.internalPointer)
     }
 
-    public var layout: ChannelLayout {
-        let pointer = withUnsafeMutablePointer(to: &self.internalPointer.pointee.layout) {
-            UnsafeMutablePointer($0)
-        }
-        return ChannelLayout(internalPointer: pointer)
+    public var bytesPerFrame: Int32 {
+        return internalPointer.pointee.bytes_per_frame
     }
 
-    public var sampleRate: UInt {
-        return UInt(self.internalPointer.pointee.sample_rate)
+    public var layout: ChannelLayout {
+        get {
+            return ChannelLayout(internalPointer: &self.internalPointer.pointee.layout)
+        }
+        set {
+            internalPointer.pointee.layout = newValue.internalPointer.pointee
+        }
+    }
+
+    public var sampleRate: Int32 {
+        get {
+            self.internalPointer.pointee.sample_rate
+        }
+        set {
+            internalPointer.pointee.sample_rate = newValue
+        }
+    }
+
+    public var softwareLatency: Double {
+        get {
+            internalPointer.pointee.software_latency
+        }
+        set {
+            internalPointer.pointee.software_latency = newValue
+        }
     }
 
     public func beginWrite(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
@@ -87,8 +123,8 @@ public class OutStream {
         try soundio_outstream_end_write(internalPointer).ensureSuccess()
     }
 
-    public func write(frameCount: Int32, _ task: (ChannelAreaList, Int32) throws -> Void) throws {
-        var areas: ChannelAreaList = nil
+    public func write(frameCount: Int32, _ task: (ChannelAreaList?, Int32) throws -> Void) throws {
+        var areas: ChannelAreaList? = nil
         var framesLeft = frameCount
 
         while 0 < framesLeft {
