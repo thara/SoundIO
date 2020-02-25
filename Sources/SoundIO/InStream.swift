@@ -14,14 +14,6 @@ public class InStream {
     // The flag is set by the callback function to prevent the internal pointer destroyed after the callback
     private var temporary: Bool = false
 
-    deinit {
-        if temporary {
-            temporary = false
-        } else {
-            soundio_instream_destroy(internalPointer)
-        }
-    }
-
     init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoInStream>) {
         self.internalPointer = internalPointer
     }
@@ -30,13 +22,25 @@ public class InStream {
         self.internalPointer = try soundio_instream_create(device.internalPointer).ensureAllocatedMemory()
     }
 
+    deinit {
+        if temporary {
+            temporary = false
+        } else {
+            soundio_instream_destroy(internalPointer)
+        }
+    }
+}
+
+// MARK: - Accessor
+extension InStream {
+
     public var bytesPerFrame: Int32 {
-        return internalPointer.pointee.bytes_per_frame
+        internalPointer.pointee.bytes_per_frame
     }
 
     public var format: Format {
         get {
-            return Format(rawValue: internalPointer.pointee.format)
+            Format(rawValue: internalPointer.pointee.format)
         }
         set {
             internalPointer.pointee.format = newValue.rawValue
@@ -69,6 +73,17 @@ public class InStream {
             internalPointer.pointee.software_latency = newValue
         }
     }
+}
+
+// MARK: - Read operation
+extension InStream {
+    public func open() throws {
+        try soundio_instream_open(internalPointer).ensureSuccess()
+    }
+
+    public func start() throws {
+        try soundio_instream_start(internalPointer).ensureSuccess()
+    }
 
     public func readCallback(_ callback: @escaping ReadCallback) {
         self.callbacks.onRead = callback
@@ -84,14 +99,10 @@ public class InStream {
             callbacks.onRead?(out, frameCountMin, frameCountMax)
         }
     }
+}
 
-    public func open() throws {
-        try soundio_instream_open(internalPointer).ensureSuccess()
-    }
-
-    public func start() throws {
-        try soundio_instream_start(internalPointer).ensureSuccess()
-    }
+// MARK: - Operations in callback
+extension InStream {
 
     public func beginRead(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
         try soundio_instream_begin_read(internalPointer, &areas, &frameCount).ensureSuccess()

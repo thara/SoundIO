@@ -16,14 +16,6 @@ public class OutStream {
     // The flag is set by the callback function to prevent the internal pointer destroyed after the callback
     private var temporary: Bool = false
 
-    deinit {
-        if temporary {
-            temporary = false
-        } else {
-            soundio_outstream_destroy(internalPointer)
-        }
-    }
-
     init(internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) {
         self.internalPointer = internalPointer
     }
@@ -33,59 +25,29 @@ public class OutStream {
         self.internalPointer.pointee.userdata = Unmanaged<OutStream.Callbacks>.passRetained(self.callbacks).toOpaque()
     }
 
+    deinit {
+        if temporary {
+            temporary = false
+        } else {
+            soundio_outstream_destroy(internalPointer)
+        }
+    }
+}
+
+// MARK: - Accessor
+extension OutStream {
+
+    public var bytesPerFrame: Int32 {
+        internalPointer.pointee.bytes_per_frame
+    }
+
     public var format: Format {
         get {
-            return Format(rawValue: internalPointer.pointee.format)
+            Format(rawValue: internalPointer.pointee.format)
         }
         set {
             internalPointer.pointee.format = newValue.rawValue
         }
-    }
-
-    public func writeCallback(_ callback: @escaping WriteCallback) {
-        self.callbacks.onWrite = callback
-
-        self.internalPointer.pointee.write_callback = {(outstream, frameCountMin, frameCountMax) in
-            guard let pointer = outstream else { return }
-
-            let out = OutStream(internalPointer: pointer)
-            out.temporary = true
-
-            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
-            callbacks.onWrite?(out, frameCountMin, frameCountMax)
-        }
-    }
-
-    public func underflowCallback(_ callback: @escaping UnderflowCallback) {
-        self.callbacks.onUnderflow = callback
-
-        self.internalPointer.pointee.underflow_callback = {(outstream) in
-            guard let pointer = outstream else { return }
-
-            let out = OutStream(internalPointer: pointer)
-            out.temporary = true
-
-            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
-            callbacks.onUnderflow?(out)
-        }
-    }
-
-    public func open() throws {
-        try soundio_outstream_open(internalPointer).ensureSuccess()
-        try internalPointer.pointee.layout_error.ensureSuccess()
-    }
-
-    public func start() throws {
-        try soundio_outstream_start(internalPointer).ensureSuccess()
-    }
-
-    public func withInternalPointer<T>(
-        _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws -> T) throws -> T {
-        return try unsafeTask(self.internalPointer)
-    }
-
-    public var bytesPerFrame: Int32 {
-        return internalPointer.pointee.bytes_per_frame
     }
 
     public var layout: ChannelLayout {
@@ -114,6 +76,37 @@ public class OutStream {
             internalPointer.pointee.software_latency = newValue
         }
     }
+}
+
+// MARK: - Write operation
+extension OutStream {
+
+    public func open() throws {
+        try soundio_outstream_open(internalPointer).ensureSuccess()
+        try internalPointer.pointee.layout_error.ensureSuccess()
+    }
+
+    public func start() throws {
+        try soundio_outstream_start(internalPointer).ensureSuccess()
+    }
+
+    public func writeCallback(_ callback: @escaping WriteCallback) {
+        self.callbacks.onWrite = callback
+
+        self.internalPointer.pointee.write_callback = {(outstream, frameCountMin, frameCountMax) in
+            guard let pointer = outstream else { return }
+
+            let out = OutStream(internalPointer: pointer)
+            out.temporary = true
+
+            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
+            callbacks.onWrite?(out, frameCountMin, frameCountMax)
+        }
+    }
+}
+
+// MARK: - Operations in callback
+extension OutStream {
 
     public func beginWrite(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
         try soundio_outstream_begin_write(internalPointer, &areas, &frameCount).ensureSuccess()
@@ -139,6 +132,29 @@ public class OutStream {
             try endWrite()
 
             framesLeft -= frameCount
+        }
+    }
+}
+
+// MARK: - Misc
+extension OutStream {
+
+    public func withInternalPointer<T>(
+        _ unsafeTask: (_ pointer: UnsafeMutablePointer<CSoundIO.SoundIoOutStream>) throws -> T) throws -> T {
+        return try unsafeTask(self.internalPointer)
+    }
+
+    public func underflowCallback(_ callback: @escaping UnderflowCallback) {
+        self.callbacks.onUnderflow = callback
+
+        self.internalPointer.pointee.underflow_callback = {(outstream) in
+            guard let pointer = outstream else { return }
+
+            let out = OutStream(internalPointer: pointer)
+            out.temporary = true
+
+            let callbacks = Unmanaged<OutStream.Callbacks>.fromOpaque(pointer.pointee.userdata).takeUnretainedValue()
+            callbacks.onUnderflow?(out)
         }
     }
 }
