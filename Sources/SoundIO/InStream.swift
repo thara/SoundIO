@@ -102,7 +102,7 @@ public class InStream {
     }
 
     public func read(frameCount: Int32, _ task: (ChannelAreaList?, Int32) throws -> Void) throws {
-        var areas: ChannelAreaList? = nil
+        var areas: ChannelAreaList?
         var framesLeft = frameCount
 
         while 0 < framesLeft {
