@@ -137,7 +137,6 @@ func main() throws {
                 }
             }
         default:
-            print("default", arg)
             usage(path: argv[0])
         }
 
@@ -154,7 +153,6 @@ func main() throws {
 
     if watch {
         soundio.onDevicesChange {
-            print("devices changed")
             try! $0.listDevices()
         }
         while true {

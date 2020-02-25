@@ -367,7 +367,6 @@ public struct ChannelLayout {
 
     public var name: String? {
         guard let pointer = internalPointer.pointee.name else {
-            print("NULL")
             return nil
         }
         return String(cString: pointer)

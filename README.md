@@ -47,9 +47,6 @@ func main() throws {
             let radiansPerSecond = pitch * 2.0 * .pi
             for frame in 0..<frameCount {
                 let sample = sin((secondsOffset + Float(frame) * secondsPerFrame) * radiansPerSecond)
-                if frame == 100 {
-                    print("\(secondsOffset) \(frame) \(secondsPerFrame) \(radiansPerSecond) \(sample)")
-                }
                 for area in areas.iterate(over: layout.channelCount) {
                     area.write(sample, stepBy: frame)
                 }
