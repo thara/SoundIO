@@ -28,23 +28,14 @@ public class Device {
     }
 
     public var currentLayout: ChannelLayout {
-        let pointer = withUnsafeMutablePointer(to: &self.internalPointer.pointee.current_layout) {
-            UnsafeMutablePointer($0)
-        }
-        return ChannelLayout(internalPointer: pointer)
+        return ChannelLayout(internalPointer: &self.internalPointer.pointee.current_layout)
     }
 
-    public var layouts: [ChannelLayout] {
+    public var layouts: ChannelLayoutList {
         let buffer = UnsafeBufferPointer(start: internalPointer.pointee.layouts, count: layoutCount)
+        return ChannelLayoutList(internalPointer: buffer)
+    }
 
-        return [ChannelLayout](unsafeUninitializedCapacity: layoutCount) { array, count in
-            for (i, var value) in buffer.enumerated() {
-                let p = UnsafeMutablePointer<SoundIoChannelLayout>.allocate(capacity: MemoryLayout<SoundIoChannelLayout>.alignment)
-                p.initialize(from: &value, count: 1)
-                array[i] = ChannelLayout(internalPointer: p)
-            }
-            count = layoutCount
-        }
     }
 
     public var sampleRateCount: Int {

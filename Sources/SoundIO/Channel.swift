@@ -7,6 +7,18 @@ public typealias SampleRateRange = (max: Int32, min: Int32)
 public typealias ChannelAreaList = UnsafeMutablePointer<SoundIoChannelArea>?
 public typealias ChannelArea = SoundIoChannelArea
 
+public struct ChannelLayoutList {
+    let internalPointer: UnsafeBufferPointer<SoundIoChannelLayout>
+
+    public var count: Int32 {
+        return Int32(internalPointer.count)
+    }
+
+    public subscript(i: Int) -> ChannelLayout {
+        return ChannelLayout(internalPointer: internalPointer.baseAddress! + i)
+    }
+}
+
 extension ChannelAreaList {
     public func iterate(over channelCount: UInt) -> UnsafeBufferPointer<SoundIoChannelArea> {
         return UnsafeBufferPointer(start: self, count: Int(channelCount))
@@ -31,7 +43,7 @@ extension ChannelArea {
 }
 
 public struct ChannelLayout {
-    let internalPointer: UnsafeMutablePointer<CSoundIO.SoundIoChannelLayout>
+    let internalPointer: UnsafePointer<CSoundIO.SoundIoChannelLayout>
 
     public var name: String? {
         guard let pointer = internalPointer.pointee.name else {
@@ -45,7 +57,8 @@ public struct ChannelLayout {
     }
 
     public var channels: [ChannelId] {
-        return withUnsafeBytes(of: &internalPointer.pointee.channels) { raw in
+        var channelTuple = internalPointer.pointee.channels
+        return withUnsafeBytes(of: &channelTuple) { raw in
             let ptr = raw.baseAddress!.assumingMemoryBound(to: SoundIoChannelId.self)
             let buffer = UnsafeBufferPointer(start: ptr, count: Int(SOUNDIO_MAX_CHANNELS))
             return Array(buffer)
