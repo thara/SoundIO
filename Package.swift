@@ -25,10 +25,7 @@ let package = Package(
         ),
         .target(
             name: "SoundIO",
-            dependencies: ["CSoundIO"],
-            linkerSettings: [
-                .unsafeFlags(["-L/usr/local/lib"], .when(platforms: [.macOS]))
-            ]),
+            dependencies: ["CSoundIO"]),
         .target(
             name: "SoundIODemo-Sine",
             dependencies: ["SoundIO", "CSoundIO"],
