@@ -36,8 +36,6 @@ public class Device {
         return ChannelLayoutList(internalPointer: buffer)
     }
 
-    }
-
     public var sampleRateCount: Int {
         return Int(internalPointer.pointee.sample_rate_count)
     }
