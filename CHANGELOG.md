@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support error callbacks in `OutStream`
 - Test other platforms except macOS
 
-## [0.2.0] - 2020-02-28
+## [0.3.0] - 2020-02-28
 ### Added
   - Support underflow callbacks in `OutStream`
   - Support `soundio_instream_destroy`
@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support `soundio_instream_start`
   - Support `soundio_instream_begin_write`
   - Support `soundio_instream_end_write`
+  - Support `soundio_ring_buffer_create`
+  - Support `soundio_ring_buffer_destroy`
+  - Support `soundio_ring_buffer_capacity`
+  - Support `soundio_ring_buffer_free_count`
+  - Support `soundio_ring_buffer_fill_count`
+  - Support `soundio_ring_buffer_write_ptr`
+  - Support `soundio_ring_buffer_read_ptr`
+  - Support `soundio_ring_buffer_advance_write_ptr`
+  - Support `soundio_ring_buffer_advance_read_ptr`
 
 ## [0.2.0] - 2020-01-25
 ### Added
