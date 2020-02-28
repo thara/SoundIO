@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add documentation
+- Add examples
+- Support error callbacks in `OutStream`
+- Support underflow callbacks in `OutStream`
+- Support `soundio_instream_destroy`
+- Support `soundio_instream_create`
+- Support `soundio_instream_open`
+- Support `soundio_instream_start`
+- Support `soundio_instream_begin_write`
+- Support `soundio_instream_end_write`
+- Test other platforms except macOS
+
 ## [0.2.0] - 2020-01-25
 ### Added
   - Support `soundio_connect_backend`

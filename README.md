@@ -81,8 +81,7 @@ You haven't need to call any `**_destroy` functions because the wrapper calls ea
 ## TODO
 
 - [ ] Add documentation
-- [ ] Support error/underflow callbacks in `OutStream`
-- [ ] Implement `InStream`
+- [ ] Support error callbacks in `OutStream`
 - [ ] Add examples
 - [ ] Test other platforms except macOS
 
