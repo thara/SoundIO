@@ -9,14 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add documentation
 - Add examples
 - Support error callbacks in `OutStream`
-- Support underflow callbacks in `OutStream`
-- Support `soundio_instream_destroy`
-- Support `soundio_instream_create`
-- Support `soundio_instream_open`
-- Support `soundio_instream_start`
-- Support `soundio_instream_begin_write`
-- Support `soundio_instream_end_write`
 - Test other platforms except macOS
+
+## [0.2.0] - 2020-02-28
+### Added
+  - Support underflow callbacks in `OutStream`
+  - Support `soundio_instream_destroy`
+  - Support `soundio_instream_create`
+  - Support `soundio_instream_open`
+  - Support `soundio_instream_start`
+  - Support `soundio_instream_begin_write`
+  - Support `soundio_instream_end_write`
 
 ## [0.2.0] - 2020-01-25
 ### Added
@@ -47,5 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sine demo
 
 [Unreleased]: https://github.com/thara/SoundIO/compare/v0.1.0...HEAD
+[0.3.0]: https://github.com/thara/SoundIO/releases/compare/v0.1.0...v0.3.0
 [0.2.0]: https://github.com/thara/SoundIO/releases/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/thara/SoundIO/releases/tag/v0.1.0
