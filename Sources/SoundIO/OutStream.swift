@@ -41,6 +41,10 @@ extension OutStream {
         internalPointer.pointee.bytes_per_frame
     }
 
+    public var bytesPerSample: Int32 {
+        internalPointer.pointee.bytes_per_sample
+    }
+
     public var format: Format {
         get {
             Format(rawValue: internalPointer.pointee.format)
