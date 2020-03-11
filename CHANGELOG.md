@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support error callbacks in `OutStream`
 - Test other platforms except macOS
 
+## [0.3.2] - 2020-03-12
+### Added
+  - Support `bytes_per_sample` in `OutStream` and `InStream`
+
 ## [0.3.1] - 2020-02-28
 
 ### Added
