@@ -12,7 +12,7 @@ A Swift wrapper for [libsoundio](https://github.com/andrewrk/libsoundio), a cros
 
 ```swift
     dependencies: [
-        .package(url: "https://github.com/thara/SoundIO.git", from: "0.3.1"),
+        .package(url: "https://github.com/thara/SoundIO.git", from: "0.3.2"),
     ]
 ```
 
