@@ -112,31 +112,16 @@ extension OutStream {
 // MARK: - Operations in callback
 extension OutStream {
 
-    public func beginWrite(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
+    public func beginWriting(theNumberOf frameCount: inout Int32) throws -> ChannelAreaList? {
+        var areas: ChannelAreaList?
+
         try soundio_outstream_begin_write(internalPointer, &areas, &frameCount).ensureSuccess()
+
+        return areas
     }
 
     public func endWrite() throws {
         try soundio_outstream_end_write(internalPointer).ensureSuccess()
-    }
-
-    public func write(frameCount: Int32, _ task: (ChannelAreaList?, Int32) throws -> Void) throws {
-        var areas: ChannelAreaList?
-        var framesLeft = frameCount
-
-        while 0 < framesLeft {
-            var actualFrameCount = framesLeft
-            try beginWrite(areas: &areas, frameCount: &actualFrameCount)
-
-            if actualFrameCount == 0 {
-                break
-            }
-
-            try task(areas, actualFrameCount)
-            try endWrite()
-
-            framesLeft -= frameCount
-        }
     }
 }
 

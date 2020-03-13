@@ -42,16 +42,28 @@ func main() throws {
         let layout = outstream.layout
         let secondsPerFrame = 1.0 / Float(outstream.sampleRate)
 
-        try! outstream.write(frameCount: frameCountMax) { (areas, frameCount) in
+        var framesLeft = frameCountMax
+
+        while 0 < framesLeft {
+            var frameCount = framesLeft
+            let areas = try! outstream.beginWriting(theNumberOf: &frameCount)
+
+            if frameCount == 0 {
+                break
+            }
+
             let pitch: Float = 440.0
             let radiansPerSecond = pitch * 2.0 * .pi
             for frame in 0..<frameCount {
                 let sample = sin((secondsOffset + Float(frame) * secondsPerFrame) * radiansPerSecond)
-                for area in areas.iterate(over: layout.channelCount) {
+                for area in areas!.iterate(over: layout.channelCount) {
                     area.write(sample, stepBy: frame)
                 }
             }
             secondsOffset = (secondsOffset + secondsPerFrame * Float(frameCount)).truncatingRemainder(dividingBy: 1)
+            try! outstream.endWrite()
+
+            framesLeft -= frameCountMax
         }
     }
 

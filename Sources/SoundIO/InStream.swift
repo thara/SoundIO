@@ -108,30 +108,14 @@ extension InStream {
 // MARK: - Operations in callback
 extension InStream {
 
-    public func beginRead(areas: inout UnsafeMutablePointer<SoundIoChannelArea>?, frameCount: inout Int32) throws {
+    public func beginRead(theNumberOf frameCount: inout Int32) throws -> ChannelAreaList? {
+        var areas: ChannelAreaList?
+
         try soundio_instream_begin_read(internalPointer, &areas, &frameCount).ensureSuccess()
+        return areas
     }
 
     public func endRead() throws {
         try soundio_instream_end_read(internalPointer).ensureSuccess()
-    }
-
-    public func read(frameCount: Int32, _ task: (ChannelAreaList?, Int32) throws -> Void) throws {
-        var areas: ChannelAreaList?
-        var framesLeft = frameCount
-
-        while 0 < framesLeft {
-            var actualFrameCount = framesLeft
-            try beginRead(areas: &areas, frameCount: &actualFrameCount)
-
-            if actualFrameCount == 0 {
-                break
-            }
-
-            try task(areas, actualFrameCount)
-            try endRead()
-
-            framesLeft -= frameCount
-        }
     }
 }

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support error callbacks in `OutStream`
 - Test other platforms except macOS
 
+## [0.3.3] - 2020-03-13
+### Added
+  - Add `OutStream.beginWrite(theNumberOf)`
+  - Add `InStream.beginRead(theNumberOf)`
+### Removed
+  - Remove `OutStream.write(frameCount, _)`
+  - Remove `InStream.write(frameCount, _)`
+
 ## [0.3.2] - 2020-03-12
 ### Added
   - Support `bytes_per_sample` in `OutStream` and `InStream`
